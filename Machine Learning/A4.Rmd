@@ -1,0 +1,524 @@
+---
+output: pdf_document
+---
+
+# FE590.  Assignment #4.
+
+
+## Enter Your Name Here, or "Anonymous" if you want to remain anonymous..
+## `r format(Sys.time(), "%Y-%m-%d")`
+
+
+I pledge on my honor that I have not given or received any unauthorized assistance on this assignment/examination. I further pledge that I have not copied any material from a book, article, the Internet or any other source except where I have expressly cited the source.
+
+By filling out the following fields, you are signing this pledge.  No assignment will get credit without being pledged.
+
+Name: FangYih Chan
+
+CWID: 10457258
+
+Date:
+
+# Instructions
+
+
+When you have completed the assignment, knit the document into a PDF file, and upload _both_ the .pdf and .Rmd files to Canvas.
+
+Note that you must have LaTeX installed in order to knit the equations below.  If you do not have it installed, simply delete the questions below.
+```{r}
+CWID = -1 #Place here your Campus wide ID number, this will personalize
+#your results, but still maintain the reproducible nature of using seeds.
+#If you ever need to reset the seed in this assignment, use this as your seed
+#Papers that use -1 as this CWID variable will earn 0's so make sure you change
+#this value before you submit your work.
+personal = 10457258 %% 10000
+set.seed(personal)
+```
+# Question 1:
+In this assignment, you will be required to find a set of data to run regression on.  This data set should be financial in nature, and of a type that will work with the models we have discussed this semester (hint: we didn't look at time series)  You may not use any of the data sets in the ISLR package that we have been looking at all semester.  Your data set that you choose should have both qualitative and quantitative variables. (or has variables that you can transform)
+
+Provide a description of the data below, where you obtained it, what the variable names are and what it is describing.
+
+# Question 2:
+Pick a quantitative variable and fit at least four different models in order to predict that variable using the other predictors.  Determine which of the models is the best fit.  You will need to provide strong reasons as to why the particular model you chose is the best one.  You will need to confirm the model you have selected provides the best fit and that you have obtained the best version of that particular model (i.e. subset selection or validation for example).  You need to convince the grader that you have chosen the best model.
+```{r}
+# Source of data from Bloomberg & Fitch 
+# Bloomberg country risk Score and Fitch Risk Rating defining Country Risk
+# with factors such as GDP, deposit/yield rate, unemployment, Import/Export, Foreign Investment, Gov corruption scores etc.
+str=c("C:/Users/bryan79/Documents/FE590/blmbg_countryrisk.csv")
+ctrydata = read.csv(file=str,head=T,sep=",")
+
+library(leaps)
+all_sample=1:83
+train=sample(83,60,replace=FALSE)
+test=all_sample[-train]
+
+#convert formats
+ctrydata$Bloomberg.Country.Risk.Score <- as.numeric(ctrydata$Bloomberg.Country.Risk.Score)
+ctrydata$X5.Year.CDS <- as.numeric(ctrydata$X5.Year.CDS)
+ctrydata$X3.Month.Deposit.Rate <- as.numeric(ctrydata$X3.Month.Deposit.Rate)
+ctrydata$Equity.Index.Price.Change.Perc<- as.numeric(ctrydata$Equity.Index.Price.Change.Perc)
+ctrydata$Index.Returns.To.Global.Avg.Zscore <- as.numeric(ctrydata$Index.Returns.To.Global.Avg.Zscore)
+ctrydata$Historical.3.Month.Volatility<- as.numeric(ctrydata$Historical.3.Month.Volatility)
+ctrydata$Real.Effective.Exchange.Rate <- as.numeric(ctrydata$Real.Effective.Exchange.Rate)
+ctrydata$GDP.YOY.Perc <- as.numeric(ctrydata$GDP.YOY.Perc)
+ctrydata$CPI.Actual <- as.numeric(ctrydata$CPI.Actual)
+ctrydata$Unemployment <- as.numeric(ctrydata$Unemployment)
+ctrydata$Total.External.Debt.PercGDP<- as.numeric(ctrydata$Total.External.Debt.PercGDP)
+ctrydata$Imports.PercGDP<- as.numeric(ctrydata$Imports.PercGDP)
+ctrydata$Exports.PercGDP<- as.numeric(ctrydata$Exports.PercGDP)
+ctrydata$Currency.Reserves.PercGDP <- as.numeric(ctrydata$Currency.Reserves.PercGDP)
+ctrydata$Foreign.Direct.Investment <- as.numeric(ctrydata$Foreign.Direct.Investment)
+ctrydata$WGI.Control.Of.Corruption <- as.numeric(ctrydata$WGI.Control.Of.Corruption)
+ctrydata$WGI.Govt.Effectiveness <- as.numeric(ctrydata$WGI.Govt.Effectiveness)
+ctrydata$WGI.Regulatory.Quality <- as.numeric(ctrydata$WGI.Regulatory.Quality)
+ctrydata$WGI.Rule.Of.Law <- ctrydata$WGI.Rule.Of.Law
+ctrydata$Ease.Of.Doing.Business.Rank <- as.numeric(ctrydata$Ease.Of.Doing.Business.Rank)
+ctrydata$Starting.A.Business.Rank <- as.numeric(ctrydata$Starting.A.Business.Rank)
+ctrydata$Risk.Rating <- as.factor(ctrydata$Risk.Rating)
+
+# linear regression
+attach(ctrydata)  # reattach after renaming
+risk.sub=regsubsets(Bloomberg.Country.Risk.Score~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,nvmax=22,data=ctrydata,subset=train)
+t(summary(risk.sub)$which)
+summary(risk.sub)$cp  # configuration previously
+
+#selected predictors
+risk2.sub=glm(Bloomberg.Country.Risk.Score~X3.Month.Deposit.Rate+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+Unemployment+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank,data=ctrydata,subset=train)
+summary(risk2.sub)
+
+reg.pred=predict(risk2.sub,ctrydata[test,])
+reg.pred2=reg.pred[!is.na(reg.pred)] # only pred != NA
+test2=test[!is.na(reg.pred)]
+plot(ctrydata$Bloomberg.Country.Risk.Score[test2],reg.pred2)
+abline(0,1,col='red')
+MSE_reg=mean((reg.pred2-ctrydata$Bloomberg.Country.Risk.Score[test2])^2)
+print(MSE_reg)
+# MSE_reg: 85.31111
+
+# regression tree
+library(tree)
+tree.fit=tree(Bloomberg.Country.Risk.Score~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data=ctrydata,subset=train)
+plot(tree.fit)
+text(tree.fit)
+tree.pred=predict(tree.fit,ctrydata[test,])
+plot(ctrydata$Bloomberg.Country.Risk.Score[test],tree.pred)
+abline(0,1,col='red')
+MSE_tree=mean((tree.pred-ctrydata$Bloomberg.Country.Risk.Score[test])^2)
+print(MSE_tree)
+# linear regression is more accurate than regression tree
+# MSE_tree: 732.9504
+
+# boosting
+library(gbm)
+boost_MSE=rep(0,3)
+for (i in 1:3) {
+   boost.sub=gbm(Bloomberg.Country.Risk.Score~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data= ctrydata[train,],n.trees=1000,shrinkage=0.05*i)
+   summary(boost.sub)
+   yhat.boost=predict(boost.sub,newdata=ctrydata[test,],n.trees=1000)
+   plot(ctrydata$Bloomberg.Country.Risk.Score[test],yhat.boost) 
+   abline(0,1,col='red')
+   boost_MSE[i]=mean((yhat.boost-ctrydata$Bloomberg.Country.Risk.Score[test])^2)
+}
+plot((1:3)*0.05,boost_MSE,type="b",xlab="shrinkage",ylab="MSE")
+# boost_MSE: 160.3537 176.5525 231.5674
+
+#bagging
+N=83
+B=100
+boots=matrix(nrow=B,ncol=N)
+for (i in 1:B)
+{
+   bootind=sample(N,N,replace=TRUE)
+   boot.lm=glm(Bloomberg.Country.Risk.Score~X3.Month.Deposit.Rate+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+Unemployment+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank,data=ctrydata,subset=bootind)
+   boot.pred=predict(boot.lm,ctrydata)
+   boots[i,]=boot.pred
+}
+bag.pred=colMeans(boots)
+bag.pred2=bag.pred[!is.na(bag.pred)] # only pred != NA
+result=all_sample[!is.na(bag.pred)]
+plot(ctrydata$Bloomberg.Country.Risk.Score[result],bag.pred2)
+abline(0,1,col='red')
+MSE_bag=mean((bag.pred2-ctrydata$Bloomberg.Country.Risk.Score[result])^2)
+print(MSE_bag)
+# MSE_bag: 49.25071
+
+# SVM regression
+library(e1071)
+SVM1=svm(Bloomberg.Country.Risk.Score~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data=ctrydata,kernel="linear",cost=10000,scale=FALSE,subset=train)
+summary(SVM1)
+names(SVM1)
+#SVM1$SV
+svm.pred=predict(SVM1,ctrydata[test,])
+testindx <- as.numeric(names(svm.pred))  
+mean(abs(svm.pred-ctrydata$Bloomberg.Country.Risk.Score[testindx]))
+#tune.out=tune(svm,Bloomberg.Country.Risk.Score~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data=ctrydata[train,],kernel="linear",ranges=list(cost=c(.1,1,10,100,1000)))
+#summary(tune.out)
+#bestmod=tune.out$best.model
+#- best parameters:
+# cost
+# 0.1
+# --- Skipping for smooth RMD generation, avoid iteration fails ---
+bestmod=svm(Bloomberg.Country.Risk.Score~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data=ctrydata,kernel="linear",cost=0.1,scale=FALSE,subset=train)
+svm.pred2=predict(bestmod,ctrydata[test,])
+testindx2 <- as.numeric(names(svm.pred2))  
+MSE_SVM= mean((svm.pred2-ctrydata$Bloomberg.Country.Risk.Score[testindx2])^2)
+print(MSE_SVM)
+# MSE_SVM: 67.5001
+
+# BAGGING has the best results
+```
+#Question 3:
+
+Do the same approach as in question 2, but this time for a qualitative variable.
+```{r}
+#Categorical
+#Tree
+library(rpart)  
+set.seed(1)
+tree.fit3=rpart(Risk.Rating~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data=ctrydata,subset=train,method="class")
+plot(tree.fit3)
+text(tree.fit3)
+tree.pred3=predict(tree.fit3,ctrydata[test,],type="class")
+table(tree.pred3,ctrydata$Risk.Rating[test])
+mean(tree.pred3==ctrydata$Risk.Rating[test])
+#tree.pred3 Good Moderate Risky
+#  Good       10        0     1
+#  Moderate    1        6     2
+#  Risky       0        1     2
+#Accuracy=0.7826087
+
+#LDA
+library(MASS)
+lda.fit=lda(Risk.Rating~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data=ctrydata,subset=train)
+lda.pred=predict(lda.fit,ctrydata[test,])
+names(lda.pred)
+lda.pred2=lda.pred$class[!is.na(lda.pred$class)]
+test2=test[!is.na(lda.pred$class)]
+#lda.class=lda.pred2$class
+table(lda.pred2,ctrydata$Risk.Rating[test2])
+mean(lda.pred2==ctrydata$Risk.Rating[test2])
+#lda.pred2  Good Moderate Risky
+#  Good        5        0     0
+#  Moderate    2        3     0
+#  Risky       0        0     0
+#Accuracy=0.80
+
+#SVM
+#library(prim)
+attach(ctrydata)
+levels(Risk.Rating) <- c(1,0,-1)
+library(e1071)
+MM1=svm(Risk.Rating~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data=ctrydata,kernel="linear",cost=10000,scale=FALSE,subset=train)
+summary(MM1)
+names(MM1)
+#MM1$SV
+# --- Skipping for smooth RMD generation, avoid interation error ---
+#tune.out=tune(svm,Risk.Rating~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data=ctrydata[train,],kernel="linear",ranges=list(cost=c(.1,1,10,100,1000)))
+#summary(tune.out)
+#bestmod=tune.out$best.model
+#- best parameters:
+# cost
+#  0.1
+bestmod=svm(Risk.Rating~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data=ctrydata,kernel="linear",cost=0.1,scale=FALSE,subset=train)
+ypred=predict(bestmod,ctrydata[test,])
+indx <- as.numeric(names(ypred))
+table(ypred,ctrydata$Risk.Rating[indx])
+mean(ypred==ctrydata$Risk.Rating[indx])
+#ypred      Good Moderate Risky
+#  Good        5        1     0
+#  Moderate    2        2     0
+#  Risky       0        0     0
+#  Accuracy=0.7
+
+MM1b=svm(Risk.Rating~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data=ctrydata,kernel="radial",gamma=1,cost=10000,scale=FALSE,subset=train)
+summary(MM1b)
+names(MM1b)
+#MM1b$SV
+# --- Skipping for smooth RMD generation, avoid interation error ---
+#tune.out=tune(svm,Risk.Rating~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data=ctrydata[train,],kernel="radial",ranges=list(cost=c(.1,1,10,100,1000),gamma=c(.5,1,2,3,4)))
+#summary(tune.out)
+#bestmod=tune.out$best.model
+#- best parameters:
+# cost gamma
+#   10   0.5
+bestmod=svm(Risk.Rating~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data=ctrydata,kernel="radial",gamma=0.5,cost=10,scale=FALSE,subset=train)
+ypred=predict(bestmod,ctrydata[test,])
+indx <- as.numeric(names(ypred))
+table(ypred,ctrydata$Risk.Rating[indx])
+mean(ypred==ctrydata$Risk.Rating[indx])
+#ypred      Good Moderate Risky
+#  Good        2        0     0
+#  Moderate    5        3     0
+#  Risky       0        0     0
+#Accuracy=0.5
+
+#Boosting
+library(gbm)
+gbm_acc=rep(0,3)
+levels(Risk.Rating) <- c(1,0,-1)
+set.seed(1)
+for (i in 1:3) {
+   boost.sub=gbm(Risk.Rating~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data= ctrydata[train,],n.trees=1000,shrinkage=0.05*i,distribution="multinomial",interaction.depth=2)
+   summary(boost.sub)
+   yhat.boost=predict(boost.sub,newdata=ctrydata[test,],n.trees=1000,type="response")
+   yhat.boost
+   ystore=rep(0,length(test))
+   for (j in 1:length(test)) {
+      idx=type.convert(which.max(yhat.boost[j,,]))
+      ystore[j]=levels(ctrydata$Risk.Rating)[idx]
+   }
+   table(ystore,ctrydata$Risk.Rating[test])
+   gbm_acc[i]=mean(ystore==ctrydata$Risk.Rating[test])
+}
+#ystore     Good Moderate Risky
+#  Good       10        1     1
+#  Moderate    1        6     1
+#  Risky       0        0     3
+#Accuracy=0.8261 (shrinkage=0.05)
+
+#BOOSTING has the best results.
+
+
+#Additional: Neural Networks
+#Quantitative
+library("neuralnet")
+Nctrydata=data.frame(Bloomberg.Country.Risk.Score, X5.Year.CDS,X3.Month.Deposit.Rate,Equity.Index.Price.Change.Perc,Index.Returns.To.Global.Avg.Zscore,Historical.3.Month.Volatility,Real.Effective.Exchange.Rate,GDP.YOY.Perc,CPI.Actual,Unemployment,Total.External.Debt.PercGDP,Imports.PercGDP,Exports.PercGDP,Currency.Reserves.PercGDP,Foreign.Direct.Investment,WGI.Control.Of.Corruption,WGI.Govt.Effectiveness,WGI.Regulatory.Quality,WGI.Rule.Of.Law,Ease.Of.Doing.Business.Rank,Starting.A.Business.Rank)
+# eg. Normopt=Normlize(Opt)
+Normalize=function(Data)  # Normalize data
+{
+   NewData=Data
+   for(i in 1:length(colnames(NewData))) {
+      if(class(NewData[,i])=="numeric" | class(NewData[,i])=="integer"){
+         NewData[,i] <- as.vector(scale(NewData[,i]))}
+   }
+   return(NewData)
+}
+# eg. unnorm(NormOpt[-train,3],means[3],sds[3])
+# means=apply(as.matrix(Opt),2,mean) ; 1=row,2=col
+# sds=apply(as.matrix(Opt),2,sd)
+unnorm=function(vect,avg,sd) # unnormalize data
+{
+   return((vect*sd+avg))
+}
+Nctrydatasel=na.omit(Nctrydata)
+Nsum=dim(Nctrydatasel)[1]
+Ntrain=sample(Nsum,floor(0.7*Nsum),replace=FALSE)
+Nall=1:Nsum
+Ntest=Nall[-Ntrain]
+Nctrydataselnorm=Normalize(Nctrydatasel)
+net.fit <- neuralnet(Bloomberg.Country.Risk.Score~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data=Nctrydataselnorm[Ntrain,],hidden=5,threshold=0.1)
+#print(net.fit)
+plot(net.fit)
+means=apply(as.matrix(Nctrydatasel),2,mean)
+sds=apply(as.matrix(Nctrydatasel),2,sd)
+net.results <- compute(net.fit,Nctrydataselnorm[-Ntrain,])
+results <- net.results$net.result
+results_unnorm <- unnorm(results,means[1],sds[1])
+plot(Nctrydatasel$Bloomberg.Country.Risk.Score[Ntest],results_unnorm)
+abline(0,1,col='red')
+MSE_neu=mean((results_unnorm-Nctrydatasel$Bloomberg.Country.Risk.Score[Ntest])^2)
+print(MSE_neu)
+
+#Categorical
+Risk.Rating3 <- as.numeric(Risk.Rating)
+for (i in 1:length(Risk.Rating)) {
+   a=Risk.Rating3[i]
+   if (a==3) {a=1} else 
+      if (a==1) {a=3}
+   Risk.Rating3[i] = a
+}
+Risk.Rating3<-as.factor(Risk.Rating3)
+levels(Risk.Rating3) <- c(-1,0,1)
+Nctrydata2=data.frame(Risk.Rating3, X5.Year.CDS,X3.Month.Deposit.Rate,Equity.Index.Price.Change.Perc,Index.Returns.To.Global.Avg.Zscore,Historical.3.Month.Volatility,Real.Effective.Exchange.Rate,GDP.YOY.Perc,CPI.Actual,Unemployment,Total.External.Debt.PercGDP,Imports.PercGDP,Exports.PercGDP,Currency.Reserves.PercGDP,Foreign.Direct.Investment,WGI.Control.Of.Corruption,WGI.Govt.Effectiveness,WGI.Regulatory.Quality,WGI.Rule.Of.Law,Ease.Of.Doing.Business.Rank,Starting.A.Business.Rank)
+Nctrydatasel2=na.omit(Nctrydata2)
+Nctrydataselnorm2=Normalize(Nctrydatasel2)
+net.fit2 <- neuralnet(Risk.Rating3~X5.Year.CDS+X3.Month.Deposit.Rate+Equity.Index.Price.Change.Perc+Index.Returns.To.Global.Avg.Zscore+Historical.3.Month.Volatility+Real.Effective.Exchange.Rate+GDP.YOY.Perc+CPI.Actual+Unemployment+Total.External.Debt.PercGDP+Imports.PercGDP+Exports.PercGDP+Currency.Reserves.PercGDP+Foreign.Direct.Investment+WGI.Control.Of.Corruption+WGI.Govt.Effectiveness+WGI.Regulatory.Quality+WGI.Rule.Of.Law+Ease.Of.Doing.Business.Rank+Starting.A.Business.Rank,data=Nctrydataselnorm2[Ntrain,],hidden=3,threshold=0.01)
+#print(net.fit)
+plot(net.fit2)
+net.results2 =predict(net.fit2,Nctrydataselnorm2[-Ntrain,])
+net.class=apply(net.results2,1,which.max)
+classes=c("Risky","Moderate","Good")
+net.class2=classes[net.class]
+testres <- Nctrydatasel2$Risk.Rating3[Ntest]
+levels(testres) <- c("Risky","Moderate","Good")
+table(testres,net.class2)
+mean(net.class2==testres)
+
+```
+#Question 4:
+
+In this problem, you will use support vector approaches in order to
+predict the direction of your ETFs in your data set from homework 2.  
+
+##(a)
+Create two different data frames, one for each ETF.  Each data frame should include the log returns of your assets as well as a binary classifier for the direction of each ETF. 
+
+##(b)
+Fit a support vector classifier to the data using linear kernels.  You should use the tune function to determine an optimal cost for each SVM.  What do you see in these results?  Is one ETF more accurately predicted over the other?
+
+##(c)
+Now repeat (b), this time using SVMs with radial and polynomial basis kernels, with different values of gamma and degree and cost. Comment on your results.
+
+
+
+```{r}
+str=c("C:/Users/bryan79/Documents/FE590/StockDatas.csv")
+data = read.csv(file=str,head=T,sep=",")
+
+attach(data)
+Direction1=sign(log(VTI[2:505]/VTI[1:504]))
+Direction2=sign(log(SPY[2:505]/SPY[1:504]))
+Direction1[Direction1!=1]=0
+Direction2[Direction2!=1]=0
+levels(Direction1) <- c(0,1)
+levels(Direction2) <- c(0,1)
+Direction1 <- as.factor(Direction1)
+Direction2 <- as.factor(Direction2)
+retPYPL=log(PYPL[2:505]/PYPL[1:504])
+retMRNA=log(MRNA[2:505]/MRNA[1:504])
+retT=log(T[2:505]/T[1:504])
+retXOM=log(XOM[2:505]/XOM[1:504])
+retTGT=log(TGT[2:505]/TGT[1:504])
+retNFLX=log(NFLX[2:505]/NFLX[1:504])
+retFB=log(FB[2:505]/FB[1:504])
+retAMZN=log(AMZN[2:505]/AMZN[1:504])
+retAAPL=log(AAPL[2:505]/AAPL[1:504])
+retMSFT=log(MSFT[2:505]/MSFT[1:504])
+
+vti_df=data.frame(Direction1,retPYPL,retMRNA,retT,retXOM,retTGT,retNFLX,retFB,retAMZN,retAAPL,retMSFT)
+spy_df=data.frame(Direction2,retPYPL,retMRNA,retT,retXOM,retTGT,retNFLX,retFB,retAMZN,retAAPL,retMSFT)
+
+library(e1071)
+all_sample=1:504
+train=sample(504,400,replace=FALSE)
+test=all_sample[-train]
+
+#Linear Kernel
+MM1=svm(Direction1~.,data=vti_df,kernel="linear",cost=10000,scale=FALSE,subset=train)
+summary(MM1)
+names(MM1)
+#MM1$SV
+# --- Skipping for smooth RMD generation, avoid long simulation ---
+#tune.out=tune(svm,Direction1~.,data=vti_df[train,],kernel="linear",ranges=list(cost=c(.1,1,10,100,1000)))
+#summary(tune.out)
+#bestmod=tune.out$best.model
+# - best parameters:
+#  cost
+#  0.1
+bestmod=svm(Direction1~.,data=vti_df,kernel="linear",cost=0.1,scale=FALSE,subset=train)
+ypred=predict(bestmod,vti_df[test,])
+table(ypred,vti_df$Direction1[test])
+mean(ypred==vti_df$Direction1[test])
+#ypred  0  1
+#    0 35  5
+#    1 11 53
+# accuracy=0.8462
+
+MM2=svm(Direction2~.,data=spy_df,kernel="linear",cost=10000,scale=FALSE,subset=train)
+summary(MM2)
+names(MM2)
+#MM2$SV
+# --- Skipping for smooth RMD generation, avoid long simulation ---
+#tune.out=tune(svm,Direction2~.,data=spy_df[train,],kernel="linear",ranges=list(cost=c(.1,1,10,100,1000)))
+#summary(tune.out)
+#bestmod=tune.out$best.model
+# - best parameters:
+#  cost
+#  0.1
+bestmod=svm(Direction2~.,data=spy_df,kernel="linear",cost=0.1,scale=FALSE,subset=train)
+ypred=predict(bestmod,spy_df[test,])
+table(ypred,spy_df$Direction2[test])
+mean(ypred==spy_df$Direction2[test])
+#ypred  0  1
+#    0 34  3
+#    1 11 56
+# accuracy= 0.8653
+# SPY is slightly more accurately predicted compared to VTI
+
+# Radial based Kernel
+MM1b=svm(Direction1~.,data=vti_df,kernel="radial",gamma=1,cost=10000,scale=FALSE,subset=train)
+summary(MM1b)
+names(MM1b)
+#MM1b$SV
+# --- Skipping for smooth RMD generation, avoid long simulation ---
+#tune.out=tune(svm,Direction1~.,data=vti_df[train,],kernel="radial",ranges=list(cost=c(.1,1,10,100,1000),gamma=c(.5,1,2,3,4)))
+#summary(tune.out)
+#bestmod=tune.out$best.model
+# - best parameters:
+# cost gamma
+# 1 0.5
+bestmod=svm(Direction1~.,data=vti_df,kernel="radial",gamma=0.5,cost=1,scale=FALSE,subset=train)
+ypred=predict(bestmod,vti_df[test,])
+table(ypred,vti_df$Direction1[test])
+mean(ypred==vti_df$Direction1[test])
+#ypred  0  1
+#    0 27  5
+#    1 19 53
+# accuracy=0.7692
+
+MM2b=svm(Direction2~.,data=spy_df,kernel="radial",gamma=1,cost=10000,scale=FALSE,subset=train)
+summary(MM2b)
+names(MM2b)
+#MM2b$SV
+# --- Skipping for smooth RMD generation, avoid long simulation ---
+#tune.out=tune(svm,Direction2~.,data=spy_df[train,],kernel="radial",ranges=list(cost=c(.1,1,10,100,1000),gamma=c(.5,1,2,3,4)))
+#summary(tune.out)
+#bestmod=tune.out$best.model
+# - best parameters:
+# cost gamma
+# 1 0.5
+bestmod=svm(Direction2~.,data=spy_df,kernel="radial",gamma=0.5,cost=1,scale=FALSE,subset=train)
+ypred=predict(bestmod,spy_df[test,])
+table(ypred,spy_df$Direction2[test])
+mean(ypred==spy_df$Direction2[test])
+#ypred  0  1
+#    0 26  2
+#    1 20 56
+#accuracy=0.7885
+
+#Polynomial based Kernel
+MM1c=svm(Direction1~.,data=vti_df,kernel="polynomial",gamma=1,cost=10000,degree=2,coef0=1,scale=FALSE,subset=train)
+summary(MM1c)
+names(MM1c)
+#MM1c$SV
+#tune.out=tune(svm,Direction1~.,data=vti_df[train,],kernel="polynomial",ranges=list(cost=c(.5,10,100),gamma=c(.5,10,100),coef0=c(.1,1,10),degree=c(2,3,4)))
+#summary(tune.out)
+#bestmod=tune.out$best.model
+#- best parameters:
+# cost gamma coef0 degree
+#  0.5   0.5    10      2
+# --- Skipping for smooth RMD generation, avoid long simulation ---
+bestmod=svm(Direction1~.,data=vti_df,kernel="polynomial",gamma=0.5,cost=0.5,degree=2,coef0=10,scale=FALSE,subset=train)
+ypred=predict(bestmod,vti_df[test,])
+table(ypred,vti_df$Direction1[test])
+mean(ypred==vti_df$Direction1[test])
+#ypred  0  1
+#    0 34  9
+#    1 12 49
+#Accuracy=0.7981
+
+set.seed(1)
+MM2c=svm(Direction2~.,data=spy_df,kernel="polynomial",gamma=1,cost=10000,degree=2,coef0=1,scale=FALSE,subset=train)
+summary(MM2c)
+names(MM2c)
+#MM2c$SV
+#tune.out=tune(svm,Direction2~.,data=spy_df[train,],kernel="polynomial",ranges=list(cost=c(.5,10,100),gamma=c(.5,10,100),coef0=c(.1,1,10),degree=c(2,3,4)))
+#summary(tune.out)
+#bestmod=tune.out$best.model
+#- best parameters:
+# cost gamma coef0 degree
+#  0.5   0.5     1      2
+# --- Skipping for smooth RMD generation, avoid long simulation ---
+bestmod=svm(Direction2~.,data=spy_df,kernel="polynomial",gamma=0.5,cost=0.5,degree=2,coef0=1,scale=FALSE,subset=train)
+ypred=predict(bestmod,spy_df[test,])
+table(ypred,spy_df$Direction2[test])
+mean(ypred==spy_df$Direction2[test])
+#ypred  0  1
+#    0 34  9
+#    1 11 50
+#Accuracy=0.8077
+
+#SPY is slightly more accurately predicted compared to VTI, results better than radial but not as good as linear
+```
+
